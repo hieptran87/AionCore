@@ -11,7 +11,7 @@ dingtalk = ["dep:reqwest", "dep:tokio-tungstenite", "dep:futures-util", "dep:rus
 weixin = ["dep:reqwest", "dep:futures-util", "dep:base64", "dep:uuid"]
 slack = ["dep:reqwest", "dep:tokio-tungstenite", "dep:futures-util", "dep:rustls", "dep:rustls-native-certs"]
 discord = ["dep:reqwest", "dep:tokio-tungstenite", "dep:futures-util", "dep:rustls", "dep:rustls-native-certs"]
-zalo = ["dep:zca-rs", "dep:tokio-tungstenite", "dep:futures-util"]
+zalo = ["dep:zca-rs", "dep:reqwest", "dep:uuid", "dep:tokio-tungstenite", "dep:futures-util"]
 
 [dependencies]
 aionui-common.workspace = true

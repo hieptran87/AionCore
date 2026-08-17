@@ -1,4 +1,5 @@
 pub mod types;
+pub mod api;
 pub mod plugin;
 pub mod listener;
 pub mod formatter;
@@ -9,5 +10,6 @@ mod plugin_test;
 #[cfg(test)]
 mod formatter_test;
 
+pub use api::ZaloApi;
 pub use login::{zalo_login_stream, ZaloLoginEvent};
 pub use plugin::ZaloPlugin;
