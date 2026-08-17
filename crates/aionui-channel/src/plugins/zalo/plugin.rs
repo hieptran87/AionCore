@@ -1,3 +1,5 @@
+use std::sync::Arc;
+use reqwest::Client;
 use tokio::sync::watch;
 use tokio::task::JoinHandle;
 use tracing::info;
@@ -8,6 +10,7 @@ use crate::types::{
     BotInfo, PluginConfig, PluginStatus, PluginType, UnifiedOutgoingMessage,
 };
 
+use super::api::ZaloApi;
 use super::formatter::format_zalo_outgoing_text;
 use super::listener::start_zalo_listener;
 
@@ -17,7 +20,7 @@ pub struct ZaloPlugin {
     bot_info: Option<BotInfo>,
     last_error: Option<String>,
     callbacks: Option<PluginCallbacks>,
-    session_token: Option<String>,
+    api: Option<Arc<ZaloApi>>,
     listener_handle: Option<JoinHandle<()>>,
     shutdown_tx: Option<watch::Sender<bool>>,
 }
@@ -29,7 +32,7 @@ impl Default for ZaloPlugin {
             bot_info: None,
             last_error: None,
             callbacks: None,
-            session_token: None,
+            api: None,
             listener_handle: None,
             shutdown_tx: None,
         }
@@ -55,52 +58,63 @@ impl ChannelPlugin for ZaloPlugin {
             .credentials
             .zalo_session
             .as_deref()
-            .filter(|s| !s.is_empty());
+            .unwrap_or_default();
 
-        if let Some(token) = session {
-            self.session_token = Some(token.to_string());
-            self.bot_info = Some(BotInfo {
-                id: "zalo_bot".to_string(),
-                username: Some("zalo_bot".to_string()),
-                display_name: "Zalo Bot".to_string(),
-            });
-            self.callbacks = Some(callbacks);
-            self.status = PluginStatus::Ready;
-            info!("ZaloPlugin initialized with session token");
-            Ok(())
-        } else {
-            // Interactive pairing fallback setup
-            self.callbacks = Some(callbacks);
-            self.status = PluginStatus::Ready;
-            info!("ZaloPlugin initialized without session token (interactive pairing mode)");
-            Ok(())
+        let imei = config
+            .credentials
+            .zalo_imei
+            .as_deref()
+            .unwrap_or("default_imei");
+
+        let client = Client::builder()
+            .timeout(std::time::Duration::from_secs(30))
+            .build()
+            .unwrap_or_default();
+
+        let mut api = ZaloApi::new(client, session, imei);
+        if let Some(cookies) = config.credentials.zalo_cookies.as_deref() {
+            api = api.with_cookies(cookies);
         }
+
+        self.api = Some(Arc::new(api));
+        self.bot_info = Some(BotInfo {
+            id: "zalo_bot".to_string(),
+            username: Some("zalo_bot".to_string()),
+            display_name: "Zalo Bot".to_string(),
+        });
+        self.callbacks = Some(callbacks);
+        self.status = PluginStatus::Ready;
+        info!("ZaloPlugin initialized");
+        Ok(())
     }
 
     async fn start(&mut self) -> Result<(), ChannelError> {
         if self.status != PluginStatus::Ready && self.status != PluginStatus::Stopped {
             return Err(ChannelError::InvalidConfig(format!(
-                "Cannot start ZaloPlugin in status {:?}",
+                "Cannot start plugin in state {:?}",
                 self.status
             )));
         }
 
         self.status = PluginStatus::Starting;
         let callbacks = self.callbacks.clone().ok_or_else(|| {
-            self.status = PluginStatus::Error;
-            ChannelError::InvalidConfig("Callbacks missing".into())
+            ChannelError::InvalidConfig("Callbacks not initialized".into())
+        })?;
+
+        let api = self.api.clone().ok_or_else(|| {
+            ChannelError::InvalidConfig("ZaloApi not initialized".into())
         })?;
 
         let (tx, rx) = watch::channel(false);
         self.shutdown_tx = Some(tx);
 
         let handle = tokio::spawn(async move {
-            start_zalo_listener(callbacks, rx).await;
+            start_zalo_listener(api, callbacks, rx).await;
         });
-        self.listener_handle = Some(handle);
 
+        self.listener_handle = Some(handle);
         self.status = PluginStatus::Running;
-        info!("ZaloPlugin started and running");
+        info!("ZaloPlugin started");
         Ok(())
     }
 
@@ -123,23 +137,45 @@ impl ChannelPlugin for ZaloPlugin {
         Ok(())
     }
 
+    fn status(&self) -> PluginStatus {
+        self.status
+    }
+
+    fn plugin_type(&self) -> PluginType {
+        PluginType::Zalo
+    }
+
+    fn bot_info(&self) -> Option<&BotInfo> {
+        self.bot_info.as_ref()
+    }
+
+    fn last_error(&self) -> Option<&str> {
+        self.last_error.as_deref()
+    }
+
+    fn active_user_count(&self) -> usize {
+        0
+    }
+
     async fn send_message(
         &self,
         chat_id: &str,
         message: UnifiedOutgoingMessage,
     ) -> Result<String, ChannelError> {
         if self.status != PluginStatus::Running {
-            return Err(ChannelError::MessageSendFailed("Plugin is not running".into()));
+            return Err(ChannelError::PlatformApi(
+                "Zalo plugin is not running".into(),
+            ));
         }
 
-        let _text = format_zalo_outgoing_text(&message);
-        let rand_val = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.subsec_nanos())
-            .unwrap_or(1000);
-        let msg_id = format!("zalo_msg_{}", rand_val);
-        info!("ZaloPlugin: sent message {} to chat {}", msg_id, chat_id);
-        Ok(msg_id)
+        let api = self.api.as_ref().ok_or_else(|| {
+            ChannelError::PlatformApi("ZaloApi not initialized".into())
+        })?;
+
+        let formatted_text = format_zalo_outgoing_text(&message);
+        api.send_text(chat_id, &formatted_text)
+            .await
+            .map_err(|e| ChannelError::MessageSendFailed(format!("Zalo send failed: {e}")))
     }
 
     async fn edit_message(
@@ -148,28 +184,7 @@ impl ChannelPlugin for ZaloPlugin {
         _message_id: &str,
         message: UnifiedOutgoingMessage,
     ) -> Result<(), ChannelError> {
-        // Fallback for platform editing: send new reply
-        self.send_message(chat_id, message).await?;
+        let _ = self.send_message(chat_id, message).await?;
         Ok(())
-    }
-
-    fn active_user_count(&self) -> usize {
-        0
-    }
-
-    fn bot_info(&self) -> Option<&BotInfo> {
-        self.bot_info.as_ref()
-    }
-
-    fn plugin_type(&self) -> PluginType {
-        PluginType::Zalo
-    }
-
-    fn status(&self) -> PluginStatus {
-        self.status
-    }
-
-    fn last_error(&self) -> Option<&str> {
-        self.last_error.as_deref()
     }
 }

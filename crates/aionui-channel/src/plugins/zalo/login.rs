@@ -1,6 +1,8 @@
 use tokio::sync::mpsc;
 use tracing::info;
 
+use super::types::{SseDoneEvent, SseErrorEvent, SseQrEvent};
+
 /// SSE event emitted during the Zalo QR code login flow.
 #[derive(Debug, Clone)]
 pub enum ZaloLoginEvent {

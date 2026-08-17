@@ -46,7 +46,7 @@ impl ZaloApi {
     /// Send a text message to a Zalo user/chat.
     pub async fn send_text(&self, to_user_id: &str, text: &str) -> Result<String, String> {
         debug!(to_user_id, text_len = text.len(), "ZaloApi sending text message");
-        Ok(format!("msg_{}", uuid::Uuid::new_v4().simple()))
+        Ok(format!("zalo_msg_{}", uuid::Uuid::new_v4().simple()))
     }
 }
 
@@ -71,6 +71,6 @@ mod tests {
         assert!(qr.contains("zalo_login_qr"));
 
         let msg_id = api.send_text("user_1", "Hello").await.unwrap();
-        assert!(msg_id.starts_with("msg_"));
+        assert!(msg_id.starts_with("zalo_msg_"));
     }
 }

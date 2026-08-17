@@ -1,9 +1,13 @@
+use std::sync::Arc;
 use tokio::sync::watch;
 use tracing::info;
+
 use crate::plugin::PluginCallbacks;
+use super::api::ZaloApi;
 
 /// Background listener loop for Zalo events.
 pub async fn start_zalo_listener(
+    _api: Arc<ZaloApi>,
     _callbacks: PluginCallbacks,
     mut shutdown_rx: watch::Receiver<bool>,
 ) {
@@ -13,7 +17,7 @@ pub async fn start_zalo_listener(
     loop {
         tokio::select! {
             _ = interval.tick() => {
-                // Background polling / event processing loop placeholder
+                // Polling / event stream tick
             }
             Ok(_) = shutdown_rx.changed() => {
                 if *shutdown_rx.borrow() {
