@@ -729,8 +729,7 @@ async fn zalo_login_sse(State(_state): State<ChannelRouterState>) -> impl axum::
     let sse_stream = futures_util::stream::unfold(rx, |mut rx: mpsc::Receiver<ZaloLoginEvent>| async move {
         match rx.recv().await {
             Some(event) => {
-                let json = serde_json::to_string(&event).unwrap_or_default();
-                let sse_event = Event::default().data(json);
+                let sse_event = Event::default().event(event.event_name()).data(event.to_json_data());
                 Some((Ok::<_, Infallible>(sse_event), rx))
             }
             None => None,
