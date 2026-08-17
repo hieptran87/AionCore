@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use reqwest::Client;
 use tokio::sync::watch;
 use tokio::task::JoinHandle;
 use tracing::info;
@@ -66,12 +65,7 @@ impl ChannelPlugin for ZaloPlugin {
             .as_deref()
             .unwrap_or("default_imei");
 
-        let client = Client::builder()
-            .timeout(std::time::Duration::from_secs(30))
-            .build()
-            .unwrap_or_default();
-
-        let mut api = ZaloApi::new(client, session, imei);
+        let mut api = ZaloApi::new(session, imei);
         if let Some(cookies) = config.credentials.zalo_cookies.as_deref() {
             api = api.with_cookies(cookies);
         }

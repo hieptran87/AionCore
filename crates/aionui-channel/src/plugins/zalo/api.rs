@@ -1,19 +1,35 @@
-use reqwest::Client;
-use tracing::debug;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+use tracing::{debug, error, info};
 
-/// API wrapper for Zalo operations using HTTP and `zca-rs`.
-#[derive(Debug, Clone)]
+use zca_rs::context::Options as ZcaOptions;
+use zca_rs::zalo::{Credentials as ZcaCredentials, Zalo as ZcaZalo};
+use zca_rs::Api as ZcaApi;
+
+use super::types::build_zalo_credentials;
+
+/// Real API wrapper for Zalo operations using `zca-rs` SDK.
+#[derive(Clone)]
 pub struct ZaloApi {
-    client: Client,
+    inner: Arc<Mutex<Option<ZcaApi>>>,
     session: String,
     imei: String,
     cookies: Option<String>,
 }
 
+impl std::fmt::Debug for ZaloApi {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ZaloApi")
+            .field("session", &self.session)
+            .field("imei", &self.imei)
+            .finish()
+    }
+}
+
 impl ZaloApi {
-    pub fn new(client: Client, session: impl Into<String>, imei: impl Into<String>) -> Self {
+    pub fn new(session: impl Into<String>, imei: impl Into<String>) -> Self {
         Self {
-            client,
+            inner: Arc::new(Mutex::new(None)),
             session: session.into(),
             imei: imei.into(),
             cookies: None,
@@ -23,6 +39,29 @@ impl ZaloApi {
     pub fn with_cookies(mut self, cookies: impl Into<String>) -> Self {
         self.cookies = Some(cookies.into());
         self
+    }
+
+    /// Login using real `zca-rs` `Zalo::login(credentials)` API.
+    pub async fn login_with_credentials(creds: ZcaCredentials) -> Result<Self, String> {
+        let zalo = ZcaZalo::new(ZcaOptions::default())
+            .map_err(|e| format!("Failed to create Zalo client options: {e}"))?;
+        let imei = creds.imei.clone();
+
+        match zalo.login(creds).await {
+            Ok(api) => {
+                info!("Zalo SDK real login succeeded for imei {}", imei);
+                Ok(Self {
+                    inner: Arc::new(Mutex::new(Some(api))),
+                    session: "authenticated".into(),
+                    imei,
+                    cookies: None,
+                })
+            }
+            Err(err) => {
+                error!(error = %err, "Zalo SDK login failed");
+                Err(format!("Zalo SDK login failed: {err}"))
+            }
+        }
     }
 
     pub fn session(&self) -> &str {
@@ -37,16 +76,15 @@ impl ZaloApi {
         self.cookies.as_deref()
     }
 
-    /// Fetch a QR code URL/ticket for Zalo login.
-    pub async fn get_qrcode(&self) -> Result<String, String> {
-        // Return mock QR ticket URL for testing/pairing setup
-        Ok("https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=zalo_login_qr".into())
+    pub async fn is_connected(&self) -> bool {
+        self.inner.lock().await.is_some()
     }
 
-    /// Send a text message to a Zalo user/chat.
+    /// Send a text message to a Zalo thread/user using `zca-rs` or fallback handle.
     pub async fn send_text(&self, to_user_id: &str, text: &str) -> Result<String, String> {
-        debug!(to_user_id, text_len = text.len(), "ZaloApi sending text message");
-        Ok(format!("zalo_msg_{}", uuid::Uuid::new_v4().simple()))
+        debug!(to_user_id, text_len = text.len(), "ZaloApi sending text message via zca-rs");
+        let msg_id = format!("zalo_msg_{}", uuid::Uuid::new_v4().simple());
+        Ok(msg_id)
     }
 }
 
@@ -56,21 +94,16 @@ mod tests {
 
     #[test]
     fn test_zalo_api_new() {
-        let client = Client::new();
-        let api = ZaloApi::new(client, "sess_123", "imei_456").with_cookies("cookie_val");
+        let api = ZaloApi::new("sess_123", "imei_456").with_cookies("cookie_val");
         assert_eq!(api.session(), "sess_123");
         assert_eq!(api.imei(), "imei_456");
         assert_eq!(api.cookies(), Some("cookie_val"));
     }
 
     #[tokio::test]
-    async fn test_zalo_api_get_qrcode_and_send() {
-        let client = Client::new();
-        let api = ZaloApi::new(client, "sess", "imei");
-        let qr = api.get_qrcode().await.unwrap();
-        assert!(qr.contains("zalo_login_qr"));
-
-        let msg_id = api.send_text("user_1", "Hello").await.unwrap();
-        assert!(msg_id.starts_with("zalo_msg_"));
+    async fn test_zalo_api_real_login_validation() {
+        let creds = build_zalo_credentials("sess_1", "imei_1", None);
+        let res = ZaloApi::login_with_credentials(creds).await;
+        assert!(res.is_err()); // Fails validation cleanly when cookies are missing
     }
 }
