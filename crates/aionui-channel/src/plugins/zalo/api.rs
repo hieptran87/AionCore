@@ -6,8 +6,6 @@ use zca_rs::context::Options as ZcaOptions;
 use zca_rs::zalo::{Credentials as ZcaCredentials, Zalo as ZcaZalo};
 use zca_rs::Api as ZcaApi;
 
-use super::types::build_zalo_credentials;
-
 /// Real API wrapper for Zalo operations using `zca-rs` SDK.
 #[derive(Clone)]
 pub struct ZaloApi {
