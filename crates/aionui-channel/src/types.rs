@@ -22,6 +22,8 @@ pub enum PluginType {
     Slack,
     /// Reserved variant for future Discord integration.
     Discord,
+    /// Zalo channel integration via zca-rs.
+    Zalo,
 }
 
 impl fmt::Display for PluginType {
@@ -33,6 +35,7 @@ impl fmt::Display for PluginType {
             Self::Weixin => write!(f, "weixin"),
             Self::Slack => write!(f, "slack"),
             Self::Discord => write!(f, "discord"),
+            Self::Zalo => write!(f, "zalo"),
         }
     }
 }
@@ -47,6 +50,7 @@ impl PluginType {
             "weixin" => Some(Self::Weixin),
             "slack" => Some(Self::Slack),
             "discord" => Some(Self::Discord),
+            "zalo" => Some(Self::Zalo),
             _ => None,
         }
     }
@@ -194,6 +198,14 @@ pub struct PluginCredentials {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub app_token: Option<String>,
 
+    // Zalo
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub zalo_session: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub zalo_imei: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub zalo_cookies: Option<String>,
+
     // Extensibility
     #[serde(flatten)]
     pub extra: HashMap<String, serde_json::Value>,
@@ -216,6 +228,9 @@ impl PluginCredentials {
             && self.account_id.is_none()
             && self.bot_token.is_none()
             && self.app_token.is_none()
+            && self.zalo_session.is_none()
+            && self.zalo_imei.is_none()
+            && self.zalo_cookies.is_none()
             && self.extra.is_empty()
     }
 }
@@ -1052,5 +1067,35 @@ mod tests {
         let json = serde_json::to_string(&cfg).unwrap();
         let parsed: PluginConfig = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed, cfg);
+    }
+
+    #[test]
+    fn test_plugin_type_zalo() {
+        let p = PluginType::from_str_opt("zalo").unwrap();
+        assert_eq!(p, PluginType::Zalo);
+        assert_eq!(p.to_string(), "zalo");
+    }
+
+    #[test]
+    fn test_zalo_credentials_is_empty() {
+        let mut creds = PluginCredentials {
+            token: None,
+            app_id: None,
+            app_secret: None,
+            encrypt_key: None,
+            verification_token: None,
+            client_id: None,
+            client_secret: None,
+            account_id: None,
+            bot_token: None,
+            app_token: None,
+            zalo_session: None,
+            zalo_imei: None,
+            zalo_cookies: None,
+            extra: HashMap::new(),
+        };
+        assert!(creds.is_empty());
+        creds.zalo_session = Some("test_session".into());
+        assert!(!creds.is_empty());
     }
 }
