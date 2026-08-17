@@ -155,7 +155,7 @@ async fn get_plugin_status(
         .map(|plugin| (plugin.id.clone(), plugin))
         .collect();
 
-    let builtin_names: [(&str, &str); 7] = [
+    let builtin_names: [(&str, &str); 8] = [
         ("telegram", "Telegram"),
         ("lark", "Lark"),
         ("dingtalk", "DingTalk"),
@@ -163,6 +163,7 @@ async fn get_plugin_status(
         ("discord", "Discord"),
         ("weixin", "WeChat"),
         ("wecom", "WeCom"),
+        ("zalo", "Zalo"),
     ];
     let builtin_types: std::collections::HashSet<&str> = builtin_names.iter().map(|(id, _)| *id).collect();
 
