@@ -9,7 +9,7 @@ use zca_rs::Api as ZcaApi;
 /// Real API wrapper for Zalo operations using `zca-rs` SDK.
 #[derive(Clone)]
 pub struct ZaloApi {
-    inner: Arc<Mutex<Option<ZcaApi>>>,
+    inner: Arc<Mutex<Option<Arc<ZcaApi>>>>,
     session: String,
     imei: String,
     cookies: Option<String>,
@@ -49,7 +49,7 @@ impl ZaloApi {
             Ok(api) => {
                 info!("Zalo SDK real login succeeded for imei {}", imei);
                 Ok(Self {
-                    inner: Arc::new(Mutex::new(Some(api))),
+                    inner: Arc::new(Mutex::new(Some(Arc::new(api)))),
                     session: "authenticated".into(),
                     imei,
                     cookies: None,
@@ -60,6 +60,12 @@ impl ZaloApi {
                 Err(format!("Zalo SDK login failed: {err}"))
             }
         }
+    }
+
+    /// Return a clone of the underlying `zca_rs::Api` instance if logged in.
+    pub async fn get_zca_api(&self) -> Option<Arc<ZcaApi>> {
+        let guard = self.inner.lock().await;
+        guard.clone()
     }
 
     pub fn session(&self) -> &str {
