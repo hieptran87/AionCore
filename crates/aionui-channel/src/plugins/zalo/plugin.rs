@@ -57,20 +57,29 @@ impl ChannelPlugin for ZaloPlugin {
             .credentials
             .zalo_session
             .as_deref()
+            .or_else(|| config.credentials.extra.get("session").and_then(|v| v.as_str()))
             .unwrap_or_default();
 
         let imei = config
             .credentials
             .zalo_imei
             .as_deref()
+            .or_else(|| config.credentials.extra.get("imei").and_then(|v| v.as_str()))
             .unwrap_or("default_imei");
 
-        let creds = super::types::build_zalo_credentials(session, imei, config.credentials.zalo_cookies.as_deref());
+        let cookies_raw = config
+            .credentials
+            .zalo_cookies
+            .as_deref()
+            .or(config.credentials.token.as_deref())
+            .or_else(|| config.credentials.extra.get("cookies").and_then(|v| v.as_str()));
+
+        let creds = super::types::build_zalo_credentials(session, imei, cookies_raw);
         let api = match ZaloApi::login_with_credentials(creds).await {
             Ok(real_api) => real_api,
             Err(_) => {
                 let mut fallback = ZaloApi::new(session, imei);
-                if let Some(cookies) = config.credentials.zalo_cookies.as_deref() {
+                if let Some(cookies) = cookies_raw {
                     fallback = fallback.with_cookies(cookies);
                 }
                 fallback
