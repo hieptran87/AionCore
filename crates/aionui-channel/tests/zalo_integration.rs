@@ -1,8 +1,5 @@
-use aionui_channel::plugin::ChannelPlugin;
 use aionui_channel::plugins::create_plugin;
-use aionui_channel::types::{
-    PluginConfig, PluginCredentials, PluginStatus, PluginType,
-};
+use aionui_channel::types::{PluginStatus, PluginType};
 
 #[test]
 fn test_create_zalo_plugin() {

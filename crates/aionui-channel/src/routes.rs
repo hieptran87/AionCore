@@ -730,6 +730,7 @@ fn build_test_config(req: &TestPluginRequest) -> PluginConfig {
         bot_token: None,
         app_token: None,
         extra: HashMap::new(),
+        ..Default::default()
     };
 
     match req.plugin_id.as_str() {
@@ -816,6 +817,7 @@ fn build_extension_config(
         bot_token: None,
         app_token: None,
         extra: HashMap::new(),
+        ..Default::default()
     };
     let mut config_extra = HashMap::new();
 

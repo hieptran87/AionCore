@@ -380,7 +380,7 @@ fn platform_to_source(platform: PluginType) -> ConversationSource {
         PluginType::Dingtalk => ConversationSource::Dingtalk,
         PluginType::Weixin => ConversationSource::Weixin,
         // Reserved variants default to Aionui
-        PluginType::Slack | PluginType::Discord => ConversationSource::Aionui,
+        PluginType::Slack | PluginType::Discord | PluginType::Zalo => ConversationSource::Aionui,
     }
 }
 
@@ -426,6 +426,7 @@ fn channel_conversation_name(
         PluginType::Weixin => "wx",
         PluginType::Slack => "slack",
         PluginType::Discord => "discord",
+        PluginType::Zalo => "zalo",
     };
 
     let mut parts = vec![short.to_owned()];

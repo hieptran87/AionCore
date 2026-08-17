@@ -165,7 +165,7 @@ impl PairingStatus {
 ///
 /// Remaining fields are captured in `extra` for extensibility
 /// (API Spec `[key: string]: unknown`).
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct PluginCredentials {
     // Telegram
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -628,6 +628,7 @@ mod tests {
             bot_token: None,
             app_token: None,
             extra: HashMap::new(),
+            ..Default::default()
         };
         let json = serde_json::to_value(&creds).unwrap();
         assert_eq!(json["token"], "bot123:ABC");
@@ -649,6 +650,7 @@ mod tests {
             bot_token: None,
             app_token: None,
             extra: HashMap::new(),
+            ..Default::default()
         };
         let json = serde_json::to_value(&creds).unwrap();
         assert_eq!(json["app_id"], "cli_abc");
@@ -1055,6 +1057,7 @@ mod tests {
                 bot_token: None,
                 app_token: None,
                 extra: HashMap::new(),
+                ..Default::default()
             },
             config: Some(PluginConfigOptions {
                 mode: Some(ConnectionMode::Polling),

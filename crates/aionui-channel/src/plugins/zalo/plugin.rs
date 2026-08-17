@@ -1,7 +1,6 @@
-use std::sync::Arc;
 use tokio::sync::watch;
 use tokio::task::JoinHandle;
-use tracing::{info, warn};
+use tracing::info;
 
 use crate::error::ChannelError;
 use crate::plugin::{ChannelPlugin, PluginCallbacks};
@@ -80,7 +79,7 @@ impl ChannelPlugin for ZaloPlugin {
 
     async fn start(&mut self) -> Result<(), ChannelError> {
         if self.status != PluginStatus::Ready && self.status != PluginStatus::Stopped {
-            return Err(ChannelError::InvalidState(format!(
+            return Err(ChannelError::InvalidConfig(format!(
                 "Cannot start ZaloPlugin in status {:?}",
                 self.status
             )));
@@ -130,11 +129,15 @@ impl ChannelPlugin for ZaloPlugin {
         message: UnifiedOutgoingMessage,
     ) -> Result<String, ChannelError> {
         if self.status != PluginStatus::Running {
-            return Err(ChannelError::InvalidState("Plugin is not running".into()));
+            return Err(ChannelError::MessageSendFailed("Plugin is not running".into()));
         }
 
-        let text = format_zalo_outgoing_text(&message);
-        let msg_id = format!("zalo_msg_{}", getrandom::u32().unwrap_or(1000));
+        let _text = format_zalo_outgoing_text(&message);
+        let rand_val = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.subsec_nanos())
+            .unwrap_or(1000);
+        let msg_id = format!("zalo_msg_{}", rand_val);
         info!("ZaloPlugin: sent message {} to chat {}", msg_id, chat_id);
         Ok(msg_id)
     }

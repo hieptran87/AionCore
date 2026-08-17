@@ -1,5 +1,5 @@
 use crate::types::{
-    BotInfo, MessageContentType, OutgoingMessageType, PluginType, UnifiedIncomingMessage,
+    MessageContentType, OutgoingMessageType, PluginType, UnifiedIncomingMessage,
     UnifiedMessageContent, UnifiedOutgoingMessage, UnifiedUser,
 };
 

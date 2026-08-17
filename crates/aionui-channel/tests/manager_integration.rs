@@ -240,6 +240,7 @@ fn make_plugin_config() -> PluginConfig {
             bot_token: None,
             app_token: None,
             extra: HashMap::new(),
+            ..Default::default()
         },
         config: None,
     }

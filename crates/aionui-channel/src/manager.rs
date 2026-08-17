@@ -635,6 +635,7 @@ impl ChannelManager {
             PluginType::Weixin => "WeChat Bot".into(),
             PluginType::Slack => "Slack Bot".into(),
             PluginType::Discord => "Discord Bot".into(),
+            PluginType::Zalo => "Zalo Bot".into(),
         }
     }
 }
@@ -1015,6 +1016,7 @@ mod tests {
                 bot_token: None,
                 app_token: None,
                 extra: HashMap::new(),
+                ..Default::default()
             },
             config: None,
         }

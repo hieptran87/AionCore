@@ -1,12 +1,10 @@
-use std::sync::Arc;
 use tokio::sync::watch;
-use tracing::{info, warn};
+use tracing::info;
 use crate::plugin::PluginCallbacks;
-use super::formatter::format_zalo_incoming_message;
 
 /// Background listener loop for Zalo events.
 pub async fn start_zalo_listener(
-    callbacks: PluginCallbacks,
+    _callbacks: PluginCallbacks,
     mut shutdown_rx: watch::Receiver<bool>,
 ) {
     info!("Zalo event listener loop started");
