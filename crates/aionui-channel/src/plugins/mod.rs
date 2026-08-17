@@ -16,6 +16,9 @@ pub mod slack;
 #[cfg(feature = "discord")]
 pub mod discord;
 
+#[cfg(feature = "zalo")]
+pub mod zalo;
+
 use crate::plugin::ChannelPlugin;
 use crate::types::PluginType;
 
@@ -41,6 +44,9 @@ pub fn create_plugin(plugin_type: PluginType) -> Option<Box<dyn ChannelPlugin>> 
 
         #[cfg(feature = "discord")]
         PluginType::Discord => Some(Box::new(discord::DiscordPlugin::new())),
+
+        #[cfg(feature = "zalo")]
+        PluginType::Zalo => Some(Box::new(zalo::ZaloPlugin::new())),
 
         #[allow(unreachable_patterns)]
         _ => None,
