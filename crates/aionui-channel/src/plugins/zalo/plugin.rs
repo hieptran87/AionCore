@@ -65,10 +65,17 @@ impl ChannelPlugin for ZaloPlugin {
             .as_deref()
             .unwrap_or("default_imei");
 
-        let mut api = ZaloApi::new(session, imei);
-        if let Some(cookies) = config.credentials.zalo_cookies.as_deref() {
-            api = api.with_cookies(cookies);
-        }
+        let creds = super::types::build_zalo_credentials(session, imei, config.credentials.zalo_cookies.as_deref());
+        let api = match ZaloApi::login_with_credentials(creds).await {
+            Ok(real_api) => real_api,
+            Err(_) => {
+                let mut fallback = ZaloApi::new(session, imei);
+                if let Some(cookies) = config.credentials.zalo_cookies.as_deref() {
+                    fallback = fallback.with_cookies(cookies);
+                }
+                fallback
+            }
+        };
 
         self.api = Some(Arc::new(api));
         self.bot_info = Some(BotInfo {

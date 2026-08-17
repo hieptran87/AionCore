@@ -89,6 +89,7 @@ impl ZaloApi {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::types::build_zalo_credentials;
 
     #[test]
     fn test_zalo_api_new() {
