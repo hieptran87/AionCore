@@ -130,6 +130,14 @@ pub fn weixin_login_route(state: ChannelRouterState) -> Router {
         .with_state(state)
 }
 
+/// Build the Zalo login SSE route (feature-gated).
+#[cfg(feature = "zalo")]
+pub fn zalo_login_route(state: ChannelRouterState) -> Router {
+    Router::new()
+        .route("/api/channel/zalo/login", get(zalo_login_sse))
+        .with_state(state)
+}
+
 // ---------------------------------------------------------------------------
 // Plugin management handlers
 // ---------------------------------------------------------------------------
@@ -700,6 +708,29 @@ async fn weixin_login_sse(State(_state): State<ChannelRouterState>) -> impl axum
         match rx.recv().await {
             Some(event) => {
                 let sse_event = Event::default().event(event.event_name()).data(event.to_json_data());
+                Some((Ok::<_, Infallible>(sse_event), rx))
+            }
+            None => None,
+        }
+    });
+
+    Sse::new(sse_stream).keep_alive(KeepAlive::default())
+}
+
+/// `GET /api/channel/zalo/login` — start Zalo QR code login SSE stream.
+#[cfg(feature = "zalo")]
+async fn zalo_login_sse(State(_state): State<ChannelRouterState>) -> impl axum::response::IntoResponse {
+    use std::convert::Infallible;
+    use axum::response::sse::{Event, KeepAlive, Sse};
+    use tokio::sync::mpsc;
+    use crate::plugins::zalo::{zalo_login_stream, ZaloLoginEvent};
+
+    let rx = zalo_login_stream();
+    let sse_stream = futures_util::stream::unfold(rx, |mut rx: mpsc::Receiver<ZaloLoginEvent>| async move {
+        match rx.recv().await {
+            Some(event) => {
+                let json = serde_json::to_string(&event).unwrap_or_default();
+                let sse_event = Event::default().data(json);
                 Some((Ok::<_, Infallible>(sse_event), rx))
             }
             None => None,

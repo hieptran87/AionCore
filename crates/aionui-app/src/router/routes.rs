@@ -303,6 +303,9 @@ pub fn create_router_with_all_state(services: &AppServices, states: ModuleStates
     #[cfg(feature = "weixin")]
     let weixin_login_authenticated = weixin_login_route(states.channel.clone())
         .route_layer(from_fn_with_state(auth_mw_state.clone(), auth_middleware));
+    #[cfg(feature = "zalo")]
+    let zalo_login_authenticated = aionui_channel::routes::zalo_login_route(states.channel.clone())
+        .route_layer(from_fn_with_state(auth_mw_state.clone(), auth_middleware));
     let channel_authenticated =
         channel_routes(states.channel).route_layer(from_fn_with_state(auth_mw_state.clone(), auth_middleware));
 
@@ -378,6 +381,10 @@ pub fn create_router_with_all_state(services: &AppServices, states: ModuleStates
     // Conditionally merge WeChat login SSE route (feature-gated)
     #[cfg(feature = "weixin")]
     let router = router.merge(weixin_login_authenticated);
+
+    // Conditionally merge Zalo login SSE route (feature-gated)
+    #[cfg(feature = "zalo")]
+    let router = router.merge(zalo_login_authenticated);
 
     let router = if services.identity_mode.is_local() {
         router
