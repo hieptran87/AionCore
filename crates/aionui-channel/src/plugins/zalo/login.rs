@@ -1,9 +1,7 @@
 use tokio::sync::mpsc;
 use tracing::{error, info};
 
-use zca_rs::apis::login_qr::{
-    LoginQRCallbackEvent, LoginQRCallbackEventData, LoginQRCallbackEventType,
-};
+use zca_rs::apis::login_qr::{LoginQRCallbackEvent, LoginQRCallbackEventData, LoginQRCallbackEventType};
 use zca_rs::context::Options as ZcaOptions;
 use zca_rs::zalo::Zalo as ZcaZalo;
 

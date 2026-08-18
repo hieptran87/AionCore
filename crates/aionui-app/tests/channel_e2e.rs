@@ -37,7 +37,9 @@ async fn get_plugins_empty() {
     let types: std::collections::HashSet<_> = data.iter().filter_map(|item| item["type"].as_str()).collect();
     assert_eq!(
         types,
-        std::collections::HashSet::from(["telegram", "lark", "dingtalk", "slack", "discord", "weixin", "wecom", "zalo"])
+        std::collections::HashSet::from([
+            "telegram", "lark", "dingtalk", "slack", "discord", "weixin", "wecom", "zalo"
+        ])
     );
     assert!(data.iter().all(|item| item["enabled"] == false));
 }

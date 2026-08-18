@@ -34,15 +34,15 @@ async fn test_zalo_login_stream_events() {
 #[cfg(feature = "zalo")]
 #[tokio::test]
 async fn test_zalo_enable_plugin_flat_config() {
+    use aionui_api_types::WebSocketMessage;
     use aionui_channel::manager::{ChannelManager, PluginFactory};
     use aionui_channel::plugins::create_plugin;
     use aionui_channel::types::PluginType;
-    use aionui_db::init_database_memory;
     use aionui_db::SqliteChannelRepository;
+    use aionui_db::init_database_memory;
     use aionui_realtime::EventBroadcaster;
-    use aionui_api_types::WebSocketMessage;
-    use tokio::sync::mpsc;
     use std::sync::Arc;
+    use tokio::sync::mpsc;
 
     struct MockBroadcaster;
     impl EventBroadcaster for MockBroadcaster {
@@ -67,5 +67,9 @@ async fn test_zalo_enable_plugin_flat_config() {
 
     let factory: PluginFactory = Box::new(|pt: PluginType| create_plugin(pt));
     let result = manager.enable_plugin(&user.id, "zalo", &flat_config, &factory).await;
-    assert!(result.is_ok(), "enable_plugin should accept flat token + imei payload: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "enable_plugin should accept flat token + imei payload: {:?}",
+        result.err()
+    );
 }

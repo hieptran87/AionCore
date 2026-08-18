@@ -3,12 +3,11 @@ use tokio::sync::watch;
 use tracing::{error, info, warn};
 use zca_rs::models::{Message, MessageContent};
 
+use super::api::ZaloApi;
 use crate::plugin::PluginCallbacks;
 use crate::types::{
-    MessageContentType, PluginType, UnifiedAttachment, UnifiedIncomingMessage, UnifiedMessageContent,
-    UnifiedUser,
+    MessageContentType, PluginType, UnifiedAttachment, UnifiedIncomingMessage, UnifiedMessageContent, UnifiedUser,
 };
-use super::api::ZaloApi;
 
 /// Background listener loop for Zalo events.
 pub async fn start_zalo_listener(
@@ -34,10 +33,10 @@ pub async fn start_zalo_listener(
                 res = msg_rx.recv() => {
                     match res {
                         Ok(msg) => {
-                            if let Some(unified) = parse_zalo_message(msg) {
-                                if let Err(e) = callbacks.message_tx.send(unified).await {
-                                    error!("Failed to forward Zalo incoming message to callback channel: {e}");
-                                }
+                            if let Some(unified) = parse_zalo_message(msg)
+                                && let Err(e) = callbacks.message_tx.send(unified).await
+                            {
+                                error!("Failed to forward Zalo incoming message to callback channel: {e}");
                             }
                         }
                         Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {

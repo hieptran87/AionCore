@@ -2,9 +2,9 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use tracing::{debug, error, info};
 
+use zca_rs::Api as ZcaApi;
 use zca_rs::context::Options as ZcaOptions;
 use zca_rs::zalo::{Credentials as ZcaCredentials, Zalo as ZcaZalo};
-use zca_rs::Api as ZcaApi;
 
 /// Real API wrapper for Zalo operations using `zca-rs` SDK.
 #[derive(Clone)]
@@ -41,8 +41,8 @@ impl ZaloApi {
 
     /// Login using real `zca-rs` `Zalo::login(credentials)` API.
     pub async fn login_with_credentials(creds: ZcaCredentials) -> Result<Self, String> {
-        let zalo = ZcaZalo::new(ZcaOptions::default())
-            .map_err(|e| format!("Failed to create Zalo client options: {e}"))?;
+        let zalo =
+            ZcaZalo::new(ZcaOptions::default()).map_err(|e| format!("Failed to create Zalo client options: {e}"))?;
         let imei = creds.imei.clone();
 
         match zalo.login(creds).await {
@@ -86,7 +86,11 @@ impl ZaloApi {
 
     /// Send a text message to a Zalo thread/user using `zca-rs` or fallback handle.
     pub async fn send_text(&self, to_user_id: &str, text: &str) -> Result<String, String> {
-        debug!(to_user_id, text_len = text.len(), "ZaloApi sending text message via zca-rs");
+        debug!(
+            to_user_id,
+            text_len = text.len(),
+            "ZaloApi sending text message via zca-rs"
+        );
 
         if let Some(zca) = self.get_zca_api().await {
             let thread_type = if to_user_id.starts_with('g') || to_user_id.starts_with("group_") {
@@ -127,7 +131,10 @@ impl ZaloApi {
                 zca_rs::models::enums::ThreadType::User
             };
 
-            match zca.send_image_from_url(image_url, desc, None, to_user_id, thread_type).await {
+            match zca
+                .send_image_from_url(image_url, desc, None, to_user_id, thread_type)
+                .await
+            {
                 Ok(val) => {
                     info!("Zalo SDK send_image_from_url succeeded");
                     let msg_id = val["data"]["msgId"]
@@ -151,8 +158,8 @@ impl ZaloApi {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::types::build_zalo_credentials;
+    use super::*;
 
     #[test]
     fn test_zalo_api_new() {
@@ -180,7 +187,9 @@ mod tests {
     #[tokio::test]
     async fn test_send_image_fallback() {
         let api = ZaloApi::new("sess_123", "imei_456");
-        let res = api.send_image_from_url("user_1", "https://example.com/img.jpg", "caption").await;
+        let res = api
+            .send_image_from_url("user_1", "https://example.com/img.jpg", "caption")
+            .await;
         assert!(res.is_ok());
         assert!(res.unwrap().starts_with("zalo_msg_"));
     }

@@ -1,6 +1,6 @@
 use crate::types::{
-    MessageContentType, OutgoingMessageType, PluginType, UnifiedIncomingMessage,
-    UnifiedMessageContent, UnifiedOutgoingMessage, UnifiedUser,
+    MessageContentType, OutgoingMessageType, PluginType, UnifiedIncomingMessage, UnifiedMessageContent,
+    UnifiedOutgoingMessage, UnifiedUser,
 };
 
 /// Format an incoming raw text message from Zalo to `UnifiedIncomingMessage`.

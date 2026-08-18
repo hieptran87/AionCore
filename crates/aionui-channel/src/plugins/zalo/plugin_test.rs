@@ -1,8 +1,7 @@
 use super::plugin::ZaloPlugin;
 use crate::plugin::{ChannelPlugin, PluginCallbacks};
 use crate::types::{
-    OutgoingMessageType, PluginConfig, PluginCredentials, PluginStatus, PluginType,
-    UnifiedOutgoingMessage,
+    OutgoingMessageType, PluginConfig, PluginCredentials, PluginStatus, PluginType, UnifiedOutgoingMessage,
 };
 
 #[tokio::test]

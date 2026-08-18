@@ -5,9 +5,7 @@ use tracing::info;
 
 use crate::error::ChannelError;
 use crate::plugin::{ChannelPlugin, PluginCallbacks};
-use crate::types::{
-    BotInfo, OutgoingMessageType, PluginConfig, PluginStatus, PluginType, UnifiedOutgoingMessage,
-};
+use crate::types::{BotInfo, OutgoingMessageType, PluginConfig, PluginStatus, PluginType, UnifiedOutgoingMessage};
 
 use super::api::ZaloApi;
 use super::formatter::format_zalo_outgoing_text;
@@ -46,11 +44,7 @@ impl ZaloPlugin {
 
 #[async_trait::async_trait]
 impl ChannelPlugin for ZaloPlugin {
-    async fn initialize(
-        &mut self,
-        config: PluginConfig,
-        callbacks: PluginCallbacks,
-    ) -> Result<(), ChannelError> {
+    async fn initialize(&mut self, config: PluginConfig, callbacks: PluginCallbacks) -> Result<(), ChannelError> {
         self.status = PluginStatus::Initializing;
 
         let session = config
@@ -107,13 +101,15 @@ impl ChannelPlugin for ZaloPlugin {
         }
 
         self.status = PluginStatus::Starting;
-        let callbacks = self.callbacks.clone().ok_or_else(|| {
-            ChannelError::InvalidConfig("Callbacks not initialized".into())
-        })?;
+        let callbacks = self
+            .callbacks
+            .clone()
+            .ok_or_else(|| ChannelError::InvalidConfig("Callbacks not initialized".into()))?;
 
-        let api = self.api.clone().ok_or_else(|| {
-            ChannelError::InvalidConfig("ZaloApi not initialized".into())
-        })?;
+        let api = self
+            .api
+            .clone()
+            .ok_or_else(|| ChannelError::InvalidConfig("ZaloApi not initialized".into()))?;
 
         let (tx, rx) = watch::channel(false);
         self.shutdown_tx = Some(tx);
@@ -167,20 +163,15 @@ impl ChannelPlugin for ZaloPlugin {
         0
     }
 
-    async fn send_message(
-        &self,
-        chat_id: &str,
-        message: UnifiedOutgoingMessage,
-    ) -> Result<String, ChannelError> {
+    async fn send_message(&self, chat_id: &str, message: UnifiedOutgoingMessage) -> Result<String, ChannelError> {
         if self.status != PluginStatus::Running {
-            return Err(ChannelError::PlatformApi(
-                "Zalo plugin is not running".into(),
-            ));
+            return Err(ChannelError::PlatformApi("Zalo plugin is not running".into()));
         }
 
-        let api = self.api.as_ref().ok_or_else(|| {
-            ChannelError::PlatformApi("ZaloApi not initialized".into())
-        })?;
+        let api = self
+            .api
+            .as_ref()
+            .ok_or_else(|| ChannelError::PlatformApi("ZaloApi not initialized".into()))?;
 
         match message.message_type {
             OutgoingMessageType::Image if message.image_url.is_some() => {

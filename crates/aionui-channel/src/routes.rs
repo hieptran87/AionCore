@@ -721,10 +721,10 @@ async fn weixin_login_sse(State(_state): State<ChannelRouterState>) -> impl axum
 /// `GET /api/channel/zalo/login` — start Zalo QR code login SSE stream.
 #[cfg(feature = "zalo")]
 async fn zalo_login_sse(State(_state): State<ChannelRouterState>) -> impl axum::response::IntoResponse {
-    use std::convert::Infallible;
+    use crate::plugins::zalo::{ZaloLoginEvent, zalo_login_stream};
     use axum::response::sse::{Event, KeepAlive, Sse};
+    use std::convert::Infallible;
     use tokio::sync::mpsc;
-    use crate::plugins::zalo::{zalo_login_stream, ZaloLoginEvent};
 
     let rx = zalo_login_stream();
     let sse_stream = futures_util::stream::unfold(rx, |mut rx: mpsc::Receiver<ZaloLoginEvent>| async move {

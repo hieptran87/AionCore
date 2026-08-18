@@ -64,11 +64,7 @@ pub fn parse_zalo_cookies_json(raw_json: &str) -> Vec<Cookie> {
 }
 
 /// Build `zca::Credentials` from Zalo plugin session, IMEI, and stored cookies.
-pub fn build_zalo_credentials(
-    _session: &str,
-    imei: &str,
-    cookies_json: Option<&str>,
-) -> Credentials {
+pub fn build_zalo_credentials(_session: &str, imei: &str, cookies_json: Option<&str>) -> Credentials {
     let cookies = cookies_json.map(parse_zalo_cookies_json).unwrap_or_default();
     Credentials {
         imei: imei.to_string(),
