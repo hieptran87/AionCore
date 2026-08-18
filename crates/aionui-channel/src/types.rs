@@ -1080,23 +1080,9 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "zalo")]
     fn test_zalo_credentials_is_empty() {
-        let mut creds = PluginCredentials {
-            token: None,
-            app_id: None,
-            app_secret: None,
-            encrypt_key: None,
-            verification_token: None,
-            client_id: None,
-            client_secret: None,
-            account_id: None,
-            bot_token: None,
-            app_token: None,
-            zalo_session: None,
-            zalo_imei: None,
-            zalo_cookies: None,
-            extra: HashMap::new(),
-        };
+        let mut creds = PluginCredentials::default();
         assert!(creds.is_empty());
         creds.zalo_session = Some("test_session".into());
         assert!(!creds.is_empty());

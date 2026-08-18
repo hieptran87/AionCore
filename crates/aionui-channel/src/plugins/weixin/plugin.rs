@@ -617,17 +617,9 @@ mod tests {
     fn make_config(bot_token: Option<&str>, account_id: Option<&str>) -> PluginConfig {
         PluginConfig {
             credentials: PluginCredentials {
-                token: None,
-                app_id: None,
-                app_secret: None,
-                encrypt_key: None,
-                verification_token: None,
-                client_id: None,
-                client_secret: None,
                 account_id: account_id.map(String::from),
                 bot_token: bot_token.map(String::from),
-                app_token: None,
-                extra: HashMap::new(),
+                ..Default::default()
             },
             config: None,
         }
