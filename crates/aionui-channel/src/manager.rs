@@ -424,16 +424,49 @@ impl ChannelManager {
     /// signalling that the stored configuration should be reused. A config that
     /// does carry credentials but fails to parse is reported as `InvalidConfig`.
     fn config_with_credentials(config_value: &serde_json::Value) -> Result<Option<PluginConfig>, ChannelError> {
-        let credentials_supplied = config_value
-            .get("credentials")
-            .and_then(serde_json::Value::as_object)
-            .is_some_and(|creds| !creds.is_empty());
-        if !credentials_supplied {
-            return Ok(None);
-        }
+        let obj = match config_value.as_object() {
+            Some(obj) if !obj.is_empty() => obj,
+            _ => return Ok(None),
+        };
 
-        let config: PluginConfig = serde_json::from_value(config_value.clone())
+        let target_value = if obj.contains_key("credentials") {
+            config_value.clone()
+        } else {
+            const KNOWN_KEYS: &[&str] = &[
+                "token",
+                "app_id",
+                "appId",
+                "app_secret",
+                "appSecret",
+                "encrypt_key",
+                "verification_token",
+                "client_id",
+                "clientId",
+                "client_secret",
+                "clientSecret",
+                "account_id",
+                "accountId",
+                "bot_token",
+                "botToken",
+                "app_token",
+                "appToken",
+                "zalo_session",
+                "zalo_imei",
+                "zalo_cookies",
+                "session",
+                "imei",
+                "cookies",
+            ];
+            let has_credential_key = obj.keys().any(|k| KNOWN_KEYS.contains(&k.as_str()));
+            if !has_credential_key {
+                return Ok(None);
+            }
+            serde_json::json!({ "credentials": config_value })
+        };
+
+        let config: PluginConfig = serde_json::from_value(target_value)
             .map_err(|e| ChannelError::InvalidConfig(format!("Invalid config: {e}")))?;
+
         if config.credentials.is_empty() {
             Ok(None)
         } else {
@@ -635,6 +668,7 @@ impl ChannelManager {
             PluginType::Weixin => "WeChat Bot".into(),
             PluginType::Slack => "Slack Bot".into(),
             PluginType::Discord => "Discord Bot".into(),
+            PluginType::Zalo => "Zalo Bot".into(),
         }
     }
 }
@@ -1015,6 +1049,7 @@ mod tests {
                 bot_token: None,
                 app_token: None,
                 extra: HashMap::new(),
+                ..Default::default()
             },
             config: None,
         }

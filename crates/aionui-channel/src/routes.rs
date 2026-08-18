@@ -130,6 +130,14 @@ pub fn weixin_login_route(state: ChannelRouterState) -> Router {
         .with_state(state)
 }
 
+/// Build the Zalo login SSE route (feature-gated).
+#[cfg(feature = "zalo")]
+pub fn zalo_login_route(state: ChannelRouterState) -> Router {
+    Router::new()
+        .route("/api/channel/zalo/login", get(zalo_login_sse))
+        .with_state(state)
+}
+
 // ---------------------------------------------------------------------------
 // Plugin management handlers
 // ---------------------------------------------------------------------------
@@ -147,7 +155,7 @@ async fn get_plugin_status(
         .map(|plugin| (plugin.id.clone(), plugin))
         .collect();
 
-    let builtin_names: [(&str, &str); 7] = [
+    let builtin_names: [(&str, &str); 8] = [
         ("telegram", "Telegram"),
         ("lark", "Lark"),
         ("dingtalk", "DingTalk"),
@@ -155,6 +163,7 @@ async fn get_plugin_status(
         ("discord", "Discord"),
         ("weixin", "WeChat"),
         ("wecom", "WeCom"),
+        ("zalo", "Zalo"),
     ];
     let builtin_types: std::collections::HashSet<&str> = builtin_names.iter().map(|(id, _)| *id).collect();
 
@@ -709,6 +718,28 @@ async fn weixin_login_sse(State(_state): State<ChannelRouterState>) -> impl axum
     Sse::new(sse_stream).keep_alive(KeepAlive::default())
 }
 
+/// `GET /api/channel/zalo/login` — start Zalo QR code login SSE stream.
+#[cfg(feature = "zalo")]
+async fn zalo_login_sse(State(_state): State<ChannelRouterState>) -> impl axum::response::IntoResponse {
+    use crate::plugins::zalo::{ZaloLoginEvent, zalo_login_stream};
+    use axum::response::sse::{Event, KeepAlive, Sse};
+    use std::convert::Infallible;
+    use tokio::sync::mpsc;
+
+    let rx = zalo_login_stream();
+    let sse_stream = futures_util::stream::unfold(rx, |mut rx: mpsc::Receiver<ZaloLoginEvent>| async move {
+        match rx.recv().await {
+            Some(event) => {
+                let sse_event = Event::default().event(event.event_name()).data(event.to_json_data());
+                Some((Ok::<_, Infallible>(sse_event), rx))
+            }
+            None => None,
+        }
+    });
+
+    Sse::new(sse_stream).keep_alive(KeepAlive::default())
+}
+
 // ---------------------------------------------------------------------------
 // Helper functions
 // ---------------------------------------------------------------------------
@@ -730,6 +761,7 @@ fn build_test_config(req: &TestPluginRequest) -> PluginConfig {
         bot_token: None,
         app_token: None,
         extra: HashMap::new(),
+        ..Default::default()
     };
 
     match req.plugin_id.as_str() {
@@ -816,6 +848,7 @@ fn build_extension_config(
         bot_token: None,
         app_token: None,
         extra: HashMap::new(),
+        ..Default::default()
     };
     let mut config_extra = HashMap::new();
 
