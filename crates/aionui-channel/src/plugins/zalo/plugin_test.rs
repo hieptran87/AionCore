@@ -60,3 +60,43 @@ async fn test_zalo_plugin_lifecycle() {
     assert!(stop_res.is_ok());
     assert_eq!(plugin.status(), PluginStatus::Stopped);
 }
+
+#[tokio::test]
+async fn test_zalo_plugin_send_image_message() {
+    let mut plugin = ZaloPlugin::new();
+    let config = PluginConfig {
+        credentials: PluginCredentials {
+            zalo_session: Some("session_abc".into()),
+            zalo_imei: Some("imei_123".into()),
+            ..Default::default()
+        },
+        config: None,
+    };
+    let (tx1, _) = tokio::sync::mpsc::channel(10);
+    let (tx2, _) = tokio::sync::mpsc::channel(10);
+    let callbacks = PluginCallbacks {
+        message_tx: tx1,
+        confirm_tx: tx2,
+    };
+
+    plugin.initialize(config, callbacks).await.unwrap();
+    plugin.start().await.unwrap();
+
+    let msg = UnifiedOutgoingMessage {
+        message_type: OutgoingMessageType::Image,
+        text: Some("Check out this photo".into()),
+        parse_mode: None,
+        buttons: None,
+        keyboard: None,
+        image_url: Some("https://example.com/photo.jpg".into()),
+        file_url: None,
+        file_name: None,
+        media_actions: None,
+        reply_to_message_id: None,
+        silent: None,
+    };
+
+    let send_res = plugin.send_message("user_999", msg).await;
+    assert!(send_res.is_ok());
+    assert!(send_res.unwrap().starts_with("zalo_msg_"));
+}

@@ -87,8 +87,65 @@ impl ZaloApi {
     /// Send a text message to a Zalo thread/user using `zca-rs` or fallback handle.
     pub async fn send_text(&self, to_user_id: &str, text: &str) -> Result<String, String> {
         debug!(to_user_id, text_len = text.len(), "ZaloApi sending text message via zca-rs");
-        let msg_id = format!("zalo_msg_{}", uuid::Uuid::new_v4().simple());
-        Ok(msg_id)
+
+        if let Some(zca) = self.get_zca_api().await {
+            let thread_type = if to_user_id.starts_with('g') || to_user_id.starts_with("group_") {
+                zca_rs::models::enums::ThreadType::Group
+            } else {
+                zca_rs::models::enums::ThreadType::User
+            };
+
+            match zca.send_message(text, to_user_id, thread_type).await {
+                Ok(val) => {
+                    info!("Zalo SDK send_message succeeded");
+                    let msg_id = val["data"]["msgId"]
+                        .as_str()
+                        .or_else(|| val["msgId"].as_str())
+                        .map(|s| s.to_string())
+                        .unwrap_or_else(|| format!("zalo_msg_{}", uuid::Uuid::new_v4().simple()));
+                    Ok(msg_id)
+                }
+                Err(err) => {
+                    error!(error = %err, "Zalo SDK send_message failed");
+                    Err(format!("Zalo SDK send_message failed: {err}"))
+                }
+            }
+        } else {
+            let msg_id = format!("zalo_msg_{}", uuid::Uuid::new_v4().simple());
+            Ok(msg_id)
+        }
+    }
+
+    /// Send an image message via URL to a Zalo thread/user using `zca-rs` or fallback handle.
+    pub async fn send_image_from_url(&self, to_user_id: &str, image_url: &str, desc: &str) -> Result<String, String> {
+        debug!(to_user_id, image_url, "ZaloApi sending image from url via zca-rs");
+
+        if let Some(zca) = self.get_zca_api().await {
+            let thread_type = if to_user_id.starts_with('g') || to_user_id.starts_with("group_") {
+                zca_rs::models::enums::ThreadType::Group
+            } else {
+                zca_rs::models::enums::ThreadType::User
+            };
+
+            match zca.send_image_from_url(image_url, desc, None, to_user_id, thread_type).await {
+                Ok(val) => {
+                    info!("Zalo SDK send_image_from_url succeeded");
+                    let msg_id = val["data"]["msgId"]
+                        .as_str()
+                        .or_else(|| val["msgId"].as_str())
+                        .map(|s| s.to_string())
+                        .unwrap_or_else(|| format!("zalo_msg_{}", uuid::Uuid::new_v4().simple()));
+                    Ok(msg_id)
+                }
+                Err(err) => {
+                    error!(error = %err, "Zalo SDK send_image_from_url failed");
+                    Err(format!("Zalo SDK send_image_from_url failed: {err}"))
+                }
+            }
+        } else {
+            let msg_id = format!("zalo_msg_{}", uuid::Uuid::new_v4().simple());
+            Ok(msg_id)
+        }
     }
 }
 
@@ -110,5 +167,21 @@ mod tests {
         let creds = build_zalo_credentials("sess_1", "imei_1", None);
         let res = ZaloApi::login_with_credentials(creds).await;
         assert!(res.is_err()); // Fails validation cleanly when cookies are missing
+    }
+
+    #[tokio::test]
+    async fn test_send_text_fallback() {
+        let api = ZaloApi::new("sess_123", "imei_456");
+        let res = api.send_text("user_1", "Hello").await;
+        assert!(res.is_ok());
+        assert!(res.unwrap().starts_with("zalo_msg_"));
+    }
+
+    #[tokio::test]
+    async fn test_send_image_fallback() {
+        let api = ZaloApi::new("sess_123", "imei_456");
+        let res = api.send_image_from_url("user_1", "https://example.com/img.jpg", "caption").await;
+        assert!(res.is_ok());
+        assert!(res.unwrap().starts_with("zalo_msg_"));
     }
 }

@@ -6,7 +6,7 @@ use tracing::info;
 use crate::error::ChannelError;
 use crate::plugin::{ChannelPlugin, PluginCallbacks};
 use crate::types::{
-    BotInfo, PluginConfig, PluginStatus, PluginType, UnifiedOutgoingMessage,
+    BotInfo, OutgoingMessageType, PluginConfig, PluginStatus, PluginType, UnifiedOutgoingMessage,
 };
 
 use super::api::ZaloApi;
@@ -182,10 +182,21 @@ impl ChannelPlugin for ZaloPlugin {
             ChannelError::PlatformApi("ZaloApi not initialized".into())
         })?;
 
-        let formatted_text = format_zalo_outgoing_text(&message);
-        api.send_text(chat_id, &formatted_text)
-            .await
-            .map_err(|e| ChannelError::MessageSendFailed(format!("Zalo send failed: {e}")))
+        match message.message_type {
+            OutgoingMessageType::Image if message.image_url.is_some() => {
+                let url = message.image_url.as_deref().unwrap();
+                let caption = message.text.as_deref().unwrap_or("");
+                api.send_image_from_url(chat_id, url, caption)
+                    .await
+                    .map_err(|e| ChannelError::MessageSendFailed(format!("Zalo send image failed: {e}")))
+            }
+            _ => {
+                let formatted_text = format_zalo_outgoing_text(&message);
+                api.send_text(chat_id, &formatted_text)
+                    .await
+                    .map_err(|e| ChannelError::MessageSendFailed(format!("Zalo send failed: {e}")))
+            }
+        }
     }
 
     async fn edit_message(
