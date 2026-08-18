@@ -103,6 +103,12 @@ jobs:
         shell: pwsh
         run: Remove-Item 'C:\Program Files\Git\usr\bin\link.exe' -Force -ErrorAction SilentlyContinue
 
+      - name: Install OpenSSL
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libssl-dev
+
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
         with:
