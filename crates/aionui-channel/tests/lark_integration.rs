@@ -83,17 +83,9 @@ mod lark_tests {
     fn make_lark_config(app_id: Option<&str>, app_secret: Option<&str>) -> PluginConfig {
         PluginConfig {
             credentials: PluginCredentials {
-                token: None,
                 app_id: app_id.map(String::from),
                 app_secret: app_secret.map(String::from),
-                encrypt_key: None,
-                verification_token: None,
-                client_id: None,
-                client_secret: None,
-                account_id: None,
-                bot_token: None,
-                app_token: None,
-                extra: HashMap::new(),
+                ..Default::default()
             },
             config: None,
         }

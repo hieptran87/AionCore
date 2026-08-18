@@ -84,17 +84,9 @@ mod dingtalk_tests {
     fn make_dingtalk_config(client_id: Option<&str>, client_secret: Option<&str>) -> PluginConfig {
         PluginConfig {
             credentials: PluginCredentials {
-                token: None,
-                app_id: None,
-                app_secret: None,
-                encrypt_key: None,
-                verification_token: None,
                 client_id: client_id.map(String::from),
                 client_secret: client_secret.map(String::from),
-                account_id: None,
-                bot_token: None,
-                app_token: None,
-                extra: HashMap::new(),
+                ..Default::default()
             },
             config: None,
         }

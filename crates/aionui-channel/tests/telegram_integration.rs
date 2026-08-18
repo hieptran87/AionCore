@@ -86,16 +86,7 @@ mod telegram_tests {
         PluginConfig {
             credentials: PluginCredentials {
                 token: token.map(String::from),
-                app_id: None,
-                app_secret: None,
-                encrypt_key: None,
-                verification_token: None,
-                client_id: None,
-                client_secret: None,
-                account_id: None,
-                bot_token: None,
-                app_token: None,
-                extra: HashMap::new(),
+                ..Default::default()
             },
             config: None,
         }
